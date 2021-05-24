@@ -1,324 +1,439 @@
-Loading...
-Moringa_Data_Science_Core_Module2_W1_Independent_Project_2021_05_Wanjiru_Kinyara_Python_Notebook"
-Moringa_Data_Science_Core_Module2_W1_Independent_Project_2021_05_Wanjiru_Kinyara_Python_Notebook"_
-[ ]
 DEFINING THE QUESTION
-a) Specifying the question
-As a data analyst under Mchezopesa, there is a need to predict the outcome of a game based on who's home and who's away and whether or not the game is friendly
+i) Specifying the Question
+As a football recruit under Mchezopesa Ltd, prdict the result of a game between tean A and team B, taking who's home, who's away and wheteher or not the game is friendly as your factors of interest. include rank in your training
 
-b)Defining the metric for success
-The project is successful if the analysis from model developed predicts the result of a game between any two teams.
+ii) Defining the Metric for Success
+The project is successful if the analysis from models developed predicts the result of a game between any two teams.
 
-Understanding context
+iii) Understanding the Context
 Mchezopesa Ltd wishes to implement a model that can effectively predict the results of two teams for purposes of managing the amount of money that they will attach to bets from their customers.
 
-c) Experimental design
-For the project to be a success, the following steps will be followed:
+iv) Experimental Design
+Perform EDA
 
-1) Reading the data.
+Check for multicollinearity
 
-2) Feature engineering.
+Build the Polynomial Regression Model
 
-3) Exploratory Data Analysis.
+Cross-validate the model
 
-4) Check for multicollinearity.
+Create residual plots and test for heterescedasticity using Bartlett's test
 
-5) Building the model.
+Feaature engineering
 
-6) Cross-validate the model.
+Build the Logistic Regression Model
 
-7) Computing RMSE.
+Hyperparameter tuning
 
-8) Create residual plots for your models.
-
-9) Perform appropriate regressions on the data and provide justification.
-
-10) Challenge the developed solution.
-
-e) Data relevance
-The data provided is relevant to this research as it includes past inofmation on perfoemance of various teams as well as the current ranking of the teams on FIfa.
-
-f) Data validation
 DATA PREPARATION
-Importing libraries
-[60]
+[1]
 
-import pandas as pd
-import numpy as np
+from sklearn.model_selection import train_test_split
 
-import seaborn as sns
+from sklearn.linear_model import LinearRegression
 
-import matplotlib.pyplot as plt
-%matplotlib inline
+from sklearn import metrics
 
-
-
-fifa results preview
-[61]
-#loading the results dataset and having a look at it
+from sklearn.linear_model import LogisticRegression
+[2]
+#loading our datasets
+fifa_ranking = pd.read_csv("/content/fifa_ranking.csv")
+fifa_ranking
+[3]
 fifa_results = pd.read_csv("/content/results.csv")
 fifa_results
-
-[62]
-#fifa results head
-fifa_results.head()
-
-[63]
-X = fifa_results.iloc[:, 2:6].values
-y = fifa_results.iloc[:, 6].values
-print(X)
-print(y)
-[['England' 0 0 'Friendly']
- ['Scotland' 4 2 'Friendly']
- ['England' 2 1 'Friendly']
- ...
- ['Algeria' 0 1 'African Cup of Nations']
- ['North Korea' 0 1 'Intercontinental Cup']
- ['Fiji' 1 1 'Pacific Games']]
-['Glasgow' 'London' 'Glasgow' ... 'Cairo' 'Ahmedabad' 'Apia']
-[64]
-#fifa results tail
-fifa_results.tail()
-
-[65]
-fifa_results.info
-<bound method DataFrame.info of              date         home_team  ...   country  neutral
-0      1872-11-30          Scotland  ...  Scotland    False
-1      1873-03-08           England  ...   England    False
-2      1874-03-07          Scotland  ...  Scotland    False
-3      1875-03-06           England  ...   England    False
-4      1876-03-04          Scotland  ...  Scotland    False
-...           ...               ...  ...       ...      ...
-40834  2019-07-18    American Samoa  ...     Samoa     True
-40835  2019-07-18              Fiji  ...     Samoa     True
-40836  2019-07-19           Senegal  ...     Egypt     True
-40837  2019-07-19        Tajikistan  ...     India     True
-40838  2019-07-20  Papua New Guinea  ...     Samoa     True
-
-[40839 rows x 9 columns]>
-[66]
-#shape of our fifa results 
+[4]
+#a look at the shape of the datasets
+fifa_ranking.shape
+[5]
 fifa_results.shape
-(40839, 9)
-[67]
-qstn = fifa_results[['home_score','away_score','tournament']]
-qstn.head()
-
-fifa ranking dataset preview
+[6]
+#datasets information
+fifa_ranking.info()
+[7]
+fifa_results.info()
+[8]
+#a look at fifa_ranking head 
+fifa_ranking.head()
+[9]
+#tail
+fifa_ranking.tail()
+[10]
+#fifa_results head
+fifa_results.head()
+[11]
+#tail
+fifa_results.tail()
+DATA VALIDATION
+[85]
+fifa_ranking_valid = fifa_ranking[:1]
+fifa_ranking_valid
 [ ]
-↳ 5 cells hidden
+fifa_ranking_valid1 = pd.read_html("https://en.wikipedia.org/wiki/1993_UEFA_Cup_Final")
 DATA CLEANING
-fifa_results clean-up
-[ ]
-↳ 2 cells hidden
-fifa_ranking dataset cleaning
-[ ]
-↳ 4 cells hidden
-merging the datasets
-[ ]
-↳ 26 cells hidden
+[12]
+#looking for null values
+fifa_ranking.isna().sum()
+[13]
+#looking for duplicates
+fifa_ranking.duplicated().sum()
+[14]
+fifa_ranking[fifa_ranking.duplicated()]
+#the duplicated data is from Sudan and there doesn't appear any errors within
+[15]
+#results missing values
+fifa_results.isna().sum()
+[16]
+#results duplicates
+fifa_results.duplicated().sum()
+Merging the datasets
+[17]
+fifa_ranking.head(1)
+[18]
+fifa_rankingdf = fifa_ranking.drop(columns=['country_abrv','total_points','previous_points','rank_change','cur_year_avg','cur_year_avg_weighted','last_year_avg','last_year_avg_weighted','two_year_ago_avg','two_year_ago_weighted','three_year_ago_avg','three_year_ago_weighted','confederation'])
+fifa_rankingdf
+[21]
+#we have to convert rank_ddate to a dtaetime
+fifa_rankingdf.rank_date = pd.to_datetime(fifa_rankingdf.rank_date)
+fifa_rankingdf.head(5)
+[22]
+fifa_rankingdf.tail()
+[23]
+fifa_rankingdf['year'] = fifa_rankingdf['rank_date'].dt.year
+fifa_rankingdf.tail(10)
+#the last year is 2018
+[24]
+#let's have a look at our fifa_results dataset
+fifa_results.head(5)
+[26]
+#converting the date to a datetime
+fifa_results.date = pd.to_datetime(fifa_results.date)
+fifa_results['year'] = fifa_results['date'].dt.year
+fifa_results.tail(5)
+#the last entries for our results dataset is 2019
+[27]
+#dropping all entries beyond 2018 in order to merge our datasets
+fifa_results1 = fifa_results[fifa_results.year < 2019]
+fifa_results1.tail()
+[28]
+#fifa ranking considers last four years therefore we'll be using four years worth of data
+fifa_results1 = fifa_results1[fifa_results1.year > 2014]
+fifa_results1.head(10)
+[30]
+#merging the sets
+fifa_merged = fifa_results1.merge(fifa_rankingdf, left_on=['home_team', 'year'], right_on=['country_full', 'year'], how='inner')
+fifa_merged
+[31]
+
+fifa_merged = fifa_merged.merge(fifa_rankingdf, left_on=['away_team', 'year'], right_on=['country_full', 'year'], how='inner')
+fifa_merged
+[32]
+#dropping unnecessary columns
+fifa_merged = fifa_merged.drop(columns=['city', 'country', 'neutral', 'year', 'country_full_x', 'country_full_y'])
+
+fifa_merged = fifa_merged[fifa_merged.rank_date_x == fifa_merged.rank_date_y]
+fifa_merged
+[33]
+#duplicates
+fifa_merged.duplicated(subset=['date','home_team','away_team','home_score','away_score','tournament']).sum()
+[35]
+#keeping only the first entry of each match
+fifa_merged.drop_duplicates(subset=['date','home_team','away_team','home_score','away_score','tournament'], keep= 'first', inplace= True)
+fifa_merged
+[36]
+#renaming columns for better understanding
+fifa_merged.rename(columns={'rank_x':'home_team_rank', 'rank_y':'away_team_rank'},inplace=True)
+fifa_merged
+[38]
+#changing tournament type to binary numbers
+fifa_merged.tournament.nunique()
+[40]
+  else:
+    return 2
+
+fifa_merged['competition'] = fifa_merged['tournament'].apply(lambda x: Tourna(x))
+fifa_merged['competition'].unique()
+[41]
+#dropping off more unnecessary columns
+fifa_merged = fifa_merged.drop(columns=['rank_date_x', 'rank_date_y'])
 EXPLORATORY DATA ANALYSIS
-[102]
-#univariate analysis
-results.describe()
+[42]
+fifa_merged.info()
+[43]
+col_names = ['home_score','away_score', 'home_team_rank', 'away_team_rank', 'competition']
 
-[103]
+fig, ax = plt.subplots(len(col_names), figsize= (8,40))
 
-#home score measures of central tendency and dispersion
-print(f'Min: {results.home_score.min()}')
-print(f'Q1: {results.home_score.quantile(.25)}')
-print(f'Q2: {results.home_score.quantile(.50)}')
-print(f'Q3: {results.home_score.quantile(.75)}')
-print(f'Max: {results.home_score.max()}')
-print('*'*15)
-
-print(f'Mean: {results.home_score.mean()}')
-
-Min: 0.0
-Q1: 0.0
-Q2: 1.0
-Q3: 2.0
-Max: 15.0
-***************
-Mean: 1.571214841412328
-Median: 1.0
-Mode: 1.0
-***************
-Skew: 1.7982608240013744
-Kurtosis: 5.94148317400417
-[104]
-#away score measures of central tendency and dispersion
-print(f'Min: {results.away_score.min()}')
-print(f'Q1: {results.away_score.quantile(.25)}')
-print(f'Q2: {results.away_score.quantile(.50)}')
-print(f'Q3: {results.away_score.quantile(.75)}')
-print(f'Max: {results.away_score.max()}')
-print('*'*15)
-
-print(f'Mean: {results.away_score.mean()}')
-print(f'Median: {results.away_score.median()}')
-
-Min: 0.0
-Q1: 0.0
-Q2: 1.0
-Q3: 2.0
-Max: 12.0
-***************
-Mean: 1.0780969479353681
-Median: 1.0
-Mode: 0.0
-***************
-Skew: 1.8083752108223807
-Kurtosis: 5.3688198142673
-[105]
-
-#Count plots
-plt.figure(figsize = [10,8])
-sns.countplot(x='year',data=results)
-plt.title('Games Held per Year')
-plt.xticks(rotation = 90)
+for i, col_val in enumerate(col_names):
+  sns.boxplot(y = fifa_merged[col_val], ax= ax[i])
+  ax[i].set_title('Box plot - {}'.format(col_val), fontsize= 10)
+  ax[i].set_xlabel(col_val, fontsize= 8)
 plt.show()
+[88]
+print(f'Mode: {fifa_merged.home_score.mode().values[0]}')
+print('*'*15)
 
-[106]
+print(f'Skew: {fifa_merged.home_score.skew()}')
+print(f'Kurtosis: {fifa_merged.home_score.kurt()}')
+[89]
+print(f'Mode: {fifa_merged.away_score.mode().values[0]}')
+print('*'*15)
+
+print(f'Skew: {fifa_merged.away_score.skew()}')
+print(f'Kurtosis: {fifa_merged.away_score.kurt()}')
+[91]
 #Tournaments Top 10
 plt.figure(figsize = [10,8])
-top_10 = results['tournament'].value_counts().sort_values(ascending=False).head(10)
+top_10 = fifa_merged['tournament'].value_counts().sort_values(ascending=False).head(10)
 top_10.sort_values(ascending=True).plot(kind='barh')
 plt.xlabel('Number of Matches')
 plt.ylabel('Competition')
 plt.title('Number of Matches played by Tournament Type')
 plt.show()
-
-[107]
-#Country played in Top 10
-plt.figure(figsize = [10,8])
-top_10 = results['country'].value_counts().sort_values(ascending=False).head(10)
-top_10.sort_values(ascending=True).plot(kind='barh')
-plt.xlabel('Number of Matches')
-plt.ylabel('Country')
-plt.title('Number of Matches played in a Country')
-plt.show()
-
-[108]
+[92]
 #Histogram of home scores
 plt.figure(figsize = [10,8])
-plt.hist(results['home_score'])
+plt.hist(fifa_merged['home_score'])
 plt.title('Histogram of Home Scores')
 plt.show()
-
-[109]
-
+[93]
 #Histogram of away scores
 plt.figure(figsize = [10,8])
-plt.hist(results['away_score'])
+plt.hist(fifa_merged['away_score'])
 plt.title('Histogram of Away Scores')
 plt.show()
-
-[110]
-neutral = pd.get_dummies(results['neutral'],drop_first=True)
-neutral.rename(columns = {True:'neutral_encod'}, inplace = True)
-neutral.head()
-
-[111]
-results.head(1)
-
-[112]
-games = pd.concat([results,neutral],axis=1)
-games.head()
-
-[113]
-sns.pairplot(games[['home_score', 'away_score', 'rank', 'year']])
-
-[114]
-#finding correlations
-games.corr()
-
-[115]
+[95]
 #games correlation heatmap
-sns.heatmap(games.corr(),annot=True)
+sns.heatmap(fifa_merged.corr(),annot=True)
 plt.show()
+[44]
+#summary statistics
+fifa_merged.describe()
+A) POLYNOMIAL REGRESSION MODEL
+MODEL 1
+checking multicolinearity
+[45]
+fifa_merged.head()
+[46]
+#using home_score as the dependent variable, let's prdeict number of goals scored by the home team
+independent_home_goals = fifa_merged.drop(columns=['date', 'home_team', 'away_team', 'home_score', 'tournament'])
+correlated_home_goals = independent_home_goals.corr()
+correlated_home_goals
+[48]
+#computing the VIF scores
+pd.DataFrame(np.linalg.inv(correlated_home_goals.values), index = correlated_home_goals.index, 
+             columns=correlated_home_goals.columns)
+all the VIF scores are below 5, hence there is little multicolinearity in our data
 
-Feature engineering
-[ ]
-↳ 2 cells hidden
-POLYNOMIAL REGRESSION MODEL
-Model 1
-[ ]
-↳ 16 cells hidden
-Model 2
-Multicolinearity
-[131]
+Building the model
+[49]
+X = independent_home_goals.values
+y = fifa_merged['home_score'].values
 
-# Model 2: Predict how many goals the home team scores. dependent variable here is away_score
+# Split the dataset into train and test sets
+X_train, X_test, y_train,  y_test = train_test_split(X,y, test_size = 0.2, random_state=0)
 
-independent_away_goals = games1.drop(columns=['home_team', 'away_team', 'away_score', 'tournament'])
-correlations_away_goals = independent_away_goals.corr()
-correlations_away_goals
+# Fit polynomial Regression to the dataset
+poly_reg = PolynomialFeatures(degree = 2) 
+X_poly = poly_reg.fit_transform(X)
 
-[132]
 
-# Let's use these correlations to compute the VIF score for each variable.
-pd.DataFrame(np.linalg.inv(correlations_away_goals.values), index = correlations_away_goals.index, 
-             columns=correlations_away_goals.columns)
+[50]
+#using 3 degrees of freedom
+poly_reg_3 = PolynomialFeatures(degree = 3) 
+X_poly_3 = poly_reg_3.fit_transform(X)
 
-VIF scores are less than 5, hence little multicolinearity
+pol_3_reg = LinearRegression()
+pol_3_reg.fit(X_poly_3, y)
 
-Model Building
-[ ]
-↳ 4 cells hidden
-Cross Validation
-[137]
+y_pred_3 = pol_3_reg.predict(poly_reg_3.fit_transform(X_test))
+[51]
+#testing using 4 degrees of freedom
+poly_reg_4 = PolynomialFeatures(degree = 4) 
+X_poly_4 = poly_reg_4.fit_transform(X)
+
+pol_4_reg = LinearRegression()
+pol_4_reg.fit(X_poly_4, y)
+
+y_pred_4 = pol_4_reg.predict(poly_reg_4.fit_transform(X_test))
+[52]
+print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y_test, y_pred_3)))
+print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y_test, y_pred_4)))
+we have 4 features. It therefore is prudent to use the 4 degrees of freedom as iit has the lowest RMSE. this also reduces chances of overfitting and underfitting our model
+
+Cross-validating the model
+[53]
+from sklearn.model_selection import KFold
 
 folds = KFold(n_splits=5)
-print('we are using ' +str(folds.get_n_splits(A)) + ' folds')
+print('we are using ' +str(folds.get_n_splits(X)) + ' folds')
 
-RMSES = [] # We will use this array to keep track of the RSME of each model
-count = 1 # This will just help 
-for train_index, test_index in folds.split(A):
+RMSES = [] #keeping track of RSME in each model
+count = 1 
+for train_index, test_index in folds.split(X):
   print('\nTraining model ' + str(count))
   
-  # set up the train and test based on the split determined by KFold
+…  yc_pred = regressor.predict(Xc_test)
+  
+  rmse_value =  np.sqrt(metrics.mean_squared_error(yc_test, yc_pred))
+  RMSES.append(rmse_value)
+  
+  print('Model ' + str(count) + ' Root Mean Squared Error:',rmse_value)
+  count = count + 1
+[54]
 
+np.mean(RMSES)
+The avaerage RMSE is very closely related to the inital RMSE chosen above. Model 3 however has the least RMSE in this case so that's what we are going with
 
-both models don't have a widespread range. model 2 however has the lowest RMSEs
+Residual plots and heteroscedasticity - Bartlett's test
+[55]
+residuals_home_score = np.subtract(y_pred_4, y_test)
 
-Residual Plots and Heteroscedasticity
-[ ]
-↳ 4 cells hidden
+pd.DataFrame(residuals_home_score).describe()
+[56]
+plt.scatter(y_pred_4, residuals_home_score, color='black')
+plt.ylabel('residual')
+plt.xlabel('fitted values')
+plt.axhline(y= residuals_home_score.mean(), color='red', linewidth=1)
+plt.show()
+there is a centered residual about the mean, close to 0. It shows the model is good
+
+[58]
+#performing the heteroscedasticity test 
+import scipy as sp
+
+test_result, p_value = sp.stats.bartlett(y_pred_4, residuals_home_score)
+
+# computing a chi squared distribution critical value
+degree_of_freedom = len(y_pred_4)-1
+probability = 1 - p_value
+
+critical_value = sp.stats.chi2.ppf(probability, degree_of_freedom)
+print(critical_value)
+
+if (test_result > critical_value):
+  print('the variances are unequal, and the model should be reassessed')
+else:
+  print('the variances are homogeneous!')
+MODEL 2
+Checking multicolinearity
+[59]
+# Model 2: predicting how many goals the home team scores depending on the away_score
+
+independent_away_goals = fifa_merged.drop(columns=['date', 'home_team', 'away_team', 'away_score', 'tournament'])
+correlated_away_goals = independent_away_goals.corr()
+correlated_away_goals
+[60]
+# computing the VIF scores
+pd.DataFrame(np.linalg.inv(correlated_away_goals.values), index = correlated_away_goals.index, 
+             columns=correlated_away_goals.columns)
+All the VIF scores are below 5, hence this data has minimal colinearity
+
+Building the model
+[61]
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+
+from sklearn.model_selection import train_test_split
+
+A = independent_away_goals.values
+b = fifa_merged['away_score'].values
+
+# Split the dataset into train and test sets
+A_train, A_test, b_train, b_test = train_test_split(A,b, test_size = 0.2, random_state=0)
+
+[62]
+poly_reg_3 = PolynomialFeatures(degree = 3) 
+A_poly_3 = poly_reg_3.fit_transform(A)
+
+pol_3_reg = LinearRegression()
+pol_3_reg.fit(A_poly_3, b)
+
+b_pred_3 = pol_3_reg.predict(poly_reg_3.fit_transform(A_test))
+[63]
+poly_reg_4 = PolynomialFeatures(degree = 4) 
+A_poly_4 = poly_reg_4.fit_transform(A)
+
+pol_4_reg = LinearRegression()
+pol_4_reg.fit(A_poly_4, b)
+
+b_pred_4 = pol_4_reg.predict(poly_reg_4.fit_transform(A_test))
+[64]
+
+print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(b_test, b_pred)))
+print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(b_test, b_pred_3)))
+print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(b_test, b_pred_4)))
+we have 4 features. It therefore is prudent to use the 4 degrees of freedom as iit has the lowest RMSE. this also reduces chances of overfitting and underfitting our model
+
+Cross-validating the model
+[67]
+  # setting of train and test as per the Kfold
+  # 80% in the training set, 20% in test test
+  Ac_train, Ac_test = A[train_index], X[test_index]
+  bc_train, bc_test = b[train_index], y[test_index]
+  
+  # fitting a model
+  regressor = LinearRegression()  
+  regressor.fit(Xc_train, yc_train)
+  
+  # this will sesses the accuracy of the model fitted
+
+[69]
+np.mean(RMSES)
+The average RMSE is very close to the initial value. We are going to be going with model 2 as it has the least RMSE and closer to the polynomial model degree of 4
+
+Residual plots and heteroscedasticity using Bartlett's test
+[70]
+residuals_away_score = np.subtract(b_pred_4, b_test)
+
+pd.DataFrame(residuals_away_score).describe()
+[71]
+plt.scatter(b_pred_4, residuals_away_score, color='black')
+plt.ylabel('residual')
+plt.xlabel('fitted values')
+plt.axhline(y= residuals_away_score.mean(), color='red', linewidth=1)
+plt.show()
+there is a centered residual about the mean, close to 0. It shows the model is good
+
+[72]
+print(critical_value)
+
+if (test_result > critical_value):
+  print('the variances are unequal, and the model should be reassessed')
+else:
+  print('the variances are homogeneous!')
+model 2 can predict the home team goals very sufficiently. the variance after cross-validation are homogenous. This is a good model
+
 LOGISTIC REGRESSION MODEL
 Feature Engineering
-[141]
-games1.head()
-
-[142]
-
-# Feature Engineering: Figure out from the home team’s perspective if the game is a Win, Lose or Draw (W, L, D)
-
-def match_result(row):
-  if row['home_score'] > row['away_score']:
-    outcome = 'Win'
-  elif row['home_score'] < row['away_score']:
-    outcome = 'Lose'
-  else:
-    outcome = 'Draw'
-
-
-[143]
+[73]
+fifa_merged.head()
+[74]
+fifa_merged['result'] = fifa_merged.apply(match_result, axis=1)
+fifa_merged
+[75]
 from sklearn.preprocessing import LabelEncoder
 
 labelencoder = LabelEncoder()
-games1['result'] = labelencoder.fit_transform(games1['result'])
-games1
+fifa_merged['result'] = labelencoder.fit_transform(fifa_merged['result'])
+fifa_merged
+Building the model
+[77]
+C = fifa_merged.drop(columns= ['date',	'home_team',	'away_team', 'tournament', 'result'])
+d = fifa_merged['result']
 
-Building The Model
-[ ]
-↳ 1 cell hidden
-Hyperparameter Testing
-[147]
+from sklearn.model_selection import train_test_split
+C_train, C_test, d_train, d_test = train_test_split(C, d, test_size = .2, random_state=20)
 
-# Alternative Solution
+from sklearn.linear_model import LogisticRegression
 
-# scaling data as advised by the warning after running the previous cell.
+LogReg = LogisticRegression()
+LogReg.fit(C_train, d_train)
+
+Hyperparameter testing
+[78]
+# as per warning above
 from sklearn import linear_model
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
@@ -326,51 +441,47 @@ scaler = StandardScaler()
 scaler.fit(C_train, d_train)
 C_train = scaler.transform(C_train)
 
+#logistic regression to improve the regression 
 
-[148]
-# Creating regularization penalty space
-penalty = ['l1', 'l2']
 
-# Creating regularization hyperparameter space
-hyp_C = np.logspace(0, 4, 10)
-
-solver = [ 'liblinear', 'sag', 'saga']
-
-# Creating hyperparameter options
+[79]
 hyperparameters = dict(C=hyp_C, penalty=penalty, solver = solver, max_iter = (10,100))
 
+# grid search using 5-fold cross validation
+clf = GridSearchCV(logistic, hyperparameters, cv=5, verbose=0)
 
-[149]
-
+# Fitting grid search
+best_model = clf.fit(C_train, d_train)
+[80]
 # Viewing best hyperparameters
 print('Best Penalty:', best_model.best_estimator_.get_params()['penalty'])
 print('Best C:', best_model.best_estimator_.get_params()['C'])
 print('Best Solver:', best_model.best_estimator_.get_params()['solver'])
 print('Best max_iter:', best_model.best_estimator_.get_params()['max_iter'])
-
-[150]
-# Predicting target vector
+[81]
+# Predict target vector
 best_model.predict(C)
-
-[151]
+[82]
 # Creating the logistic regression
 logistic = linear_model.LogisticRegression().fit(X_train,y_train)
 metrics.accuracy_score(d_test, d_pred)
-
-[152]
-
+[83]
 logistic = linear_model.LogisticRegression(penalty='l1', C=1, max_iter=10, solver='saga').fit(C_train,d_train)
 
 dc_pred = logistic.predict(C_test)
 metrics.accuracy_score(d_test, dc_pred)
-
-[153]
+[84]
 
 best_model.best_score_
+there is a 100% accuracy with this model. the c=1 and L1 penalty are our best parameters
 
 CONCLUSION
-The logistic regression was able to split results into win, lose and draw hence providing a 100% accuracy
+Both the Polynomial and Logistic regression are fairly accurate in result prediction. the Logistic regression was able to provide a 100% accuracy since it was able to predict and categorise the results as either a win, loss or a draw.
 
-we did have the right data and the right question for this dataset
+The data provided was right for this project. We had to drop a few duplicates in order to work with the right entries.
+
+Extra information may not be necessary as what is provided in the datasets was adequate for the project at hand.
+
+The question was indeed interesting. Game predictions are useful to people and companies who place bets on playing teams
 
 
